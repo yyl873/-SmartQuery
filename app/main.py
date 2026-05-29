@@ -26,10 +26,20 @@ from app.llm import generate_sql, generate_translation, fix_sql
 from app.utils import is_safe_sql, format_sql, detect_encoding, is_safe_table_name
 
 # ---- 日志配置 ----
+LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs")
+os.makedirs(LOG_DIR, exist_ok=True)
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
+    handlers=[
+        logging.StreamHandler(),                                        # 控制台输出
+        logging.FileHandler(                                            # 文件输出
+            os.path.join(LOG_DIR, "smartquery.log"),
+            encoding="utf-8",
+        ),
+    ],
 )
 logger = logging.getLogger("smartquery")
 
@@ -235,6 +245,40 @@ async def generate_sql_only(request: GenerateRequest):
         elapsed = time.time() - t_start
         logger.error(f"SQL 生成失败 ({elapsed:.1f}s): {e}")
         return GenerateResponse(sql="", error=f"生成失败: {str(e)}")
+
+
+# ==================== SQL 流式生成（SSE） ====================
+
+@app.post("/generate-sql-stream")
+async def generate_sql_stream(request: GenerateRequest):
+    """
+    流式生成 SQL，逐 token 通过 SSE（Server-Sent Events）推送。
+    前端可实时看到 SQL 逐字生成，体验类似 ChatGPT。
+    """
+    from app.llm import generate_sql_stream as gen_stream
+
+    logger.info(f"流式生成 SQL: {request.question[:80]}...")
+
+    async def event_stream():
+        try:
+            schema = get_schema()
+            for token in gen_stream(request.question, schema):
+                # SSE 格式: data: <content>\n\n
+                yield f"data: {json.dumps({'token': token})}\n\n"
+            yield f"data: {json.dumps({'done': True})}\n\n"
+        except Exception as e:
+            logger.error(f"流式生成失败: {e}")
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",  # 禁用 nginx 缓冲
+        },
+    )
 
 
 # ==================== 自然语言查询（两步或一步完成） ====================

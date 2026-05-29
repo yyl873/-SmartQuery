@@ -1,0 +1,19 @@
+# ============================================================
+# SmartQuery Docker Compose
+#   docker compose up -d
+# ============================================================
+
+services:
+  smartquery:
+    build: .
+    container_name: smartquery
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      # 持久化数据库文件
+      - ./data:/app/data
+    environment:
+      - DATABASE_URL=sqlite:///./data/smartquery.db
+    restart: unless-stopped

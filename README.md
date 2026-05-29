@@ -8,6 +8,9 @@
   <img src="https://img.shields.io/badge/database-SQLite%20%7C%20MySQL%20%7C%20PG-orange" alt="Database">
   <img src="https://img.shields.io/badge/LLM-OpenAI%20%7C%20DeepSeek-purple" alt="LLM">
   <img src="https://img.shields.io/badge/frontend-vanilla-green" alt="Frontend">
+  <img src="https://img.shields.io/badge/tests-67%20passed-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/docker-ready-2496ED" alt="Docker">
+  <img src="https://img.shields.io/badge/license-GPL%20v3-blue" alt="License">
 </p>
 
 ---
@@ -146,6 +149,30 @@ smartquery/
 | POST | `/import-csv` | 导入 CSV 文件 |
 | POST | `/export` | 导出结果（csv/json/xlsx） |
 | GET | `/history` | 本地查询历史 |
+| POST | `/generate-sql-stream` | **流式生成 SQL（SSE）** — 逐 token 实时推送 |
+
+---
+
+## 📸 界面截图
+
+> 启动后访问 `http://localhost:8000` 即可看到。点击下方占位图可替换为实际截图。
+
+```
+入口选择页                 专业模式主界面              查询结果 + 双语翻译
+┌─────────────────┐    ┌─────────────────────┐    ┌─────────────────────┐
+│  🛠️   📊   👶   │    │ 🧠 提问框            │    │ 📊 查询结果 (15行)   │
+│ 专业  日常  看看  │    │ ┌─────────────────┐ │    │ ┌─────────────────┐ │
+│                 │    │ │ 各城市订单量？    │ │    │ │ 北京  | 128      │ │
+│ 毛玻璃卡片      │    │ └─────────────────┘ │    │ │ 上海  | 96       │ │
+│ 悬停上浮+发光   │    │ [🧠 生成 SQL]       │    │ │ 广州  | 74       │ │
+│                 │    │ ┌─────────────────┐ │    │ └─────────────────┘ │
+│                 │    │ │ SELECT city,     │ │    │ 中文: 北京订单最多  │
+│                 │    │ │ COUNT(*) FROM... │ │    │ English: Beijing.. │
+│                 │    │ └─────────────────┘ │    │ [CSV] [JSON] [Excel] │
+└─────────────────┘    └─────────────────────┘    └─────────────────────┘
+```
+
+> 💡 贴图指南：用 Win+Shift+S 截三张图放到 `screenshots/` 目录，然后替换上方 ASCII 为 `![](screenshots/xxx.png)`。
 
 ---
 
@@ -153,12 +180,15 @@ smartquery/
 
 | 组件 | 技术 |
 |------|------|
-| Web 框架 | FastAPI |
+| Web 框架 | FastAPI + Uvicorn |
 | 数据库 | SQLAlchemy Core（SQLite / MySQL / PostgreSQL） |
-| LLM | OpenAI 兼容 API（DeepSeek / GPT / 任意兼容接口） |
-| SQL 解析 | sqlparse（AST 级别关键词分析） |
-| 前端 | 原生 HTML + CSS + JS，无框架，零依赖 |
-| 打包 | PyInstaller → 单文件 Windows EXE |
+| LLM | OpenAI 兼容 API（DeepSeek / GPT）+ **SSE 流式输出** |
+| SQL 安全 | sqlparse AST 级关键词分析（两级权限） |
+| 前端 | 原生 HTML + CSS + JS，Stripe 风格毛玻璃 UI |
+| 测试 | pytest（67 个用例，覆盖安全/编码/CSV 解析） |
+| 容器化 | Docker + Docker Compose |
+| 打包 | PyInstaller → 单文件 Windows EXE（37MB） |
+| 日志 | 双通道：控制台 + 文件（`logs/smartquery.log`） |
 
 ---
 
